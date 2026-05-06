@@ -94,8 +94,9 @@ async function handleDocx(base64, res) {
 
 // Extrait le texte des paragraphes d'un slide XML PPTX
 function extractSlideText(xml) {
+  // Regroupe les <a:t> par paragraphe <a:p> pour conserver la structure
   const paragraphs = [];
-  const pRegex = /<a:p[\s>][\s\S]*?<\/a:p>/g;
+  const pRegex = /<a:p[ >][\s\S]*?<\/a:p>/g;
   let pMatch;
   while ((pMatch = pRegex.exec(xml)) !== null) {
     const tRegex = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g;
@@ -107,7 +108,17 @@ function extractSlideText(xml) {
     const trimmed = line.trim();
     if (trimmed) paragraphs.push(trimmed);
   }
-  return paragraphs.join('\n');
+  if (paragraphs.length > 0) return paragraphs.join('\n');
+
+  // Fallback : extraire tous les <a:t> directement (PPTX non-standard)
+  const fallback = [];
+  const tRegex = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g;
+  let tMatch;
+  while ((tMatch = tRegex.exec(xml)) !== null) {
+    const text = tMatch[1].trim();
+    if (text) fallback.push(text);
+  }
+  return fallback.join(' ');
 }
 
 async function handlePptx(base64, res) {

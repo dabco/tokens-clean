@@ -83,10 +83,14 @@ export default function Home() {
       const dataUrl = await compressImage(rawDataUrl, mimeType);
       const base64  = dataUrl.split(',')[1];
 
-      // Estimation tokens image avant envoi
-      const imgTokens = mimeType.startsWith('image/')
-        ? await estimateImageTokens(file, rawDataUrl)
-        : Math.round(base64.length * 0.75 / 750); // fallback PDF
+      // Estimation tokens avant envoi
+      let imgTokens;
+      if (mimeType.startsWith('image/')) {
+        imgTokens = await estimateImageTokens(file, rawDataUrl);
+      } else {
+        // PDF/DOCX/PPTX : taille brute du fichier ÷ 4 octets/token
+        imgTokens = Math.round(file.size / 4);
+      }
 
       try {
         const res  = await fetch('/api/convert', {
@@ -98,10 +102,11 @@ export default function Home() {
         if (data.error) throw new Error(data.error);
 
         // Calcul économies
-        const outTokens = Math.round(data.markdown.length / 4);
-        const saved     = Math.max(0, imgTokens - outTokens);
-        const pct       = imgTokens > 0 ? Math.round((saved / imgTokens) * 100) : 0;
-        setSavings({ imgTokens, outTokens, saved, pct });
+        const outTokens  = Math.round(data.markdown.length / 4);
+        const saved      = Math.max(0, imgTokens - outTokens);
+        const pct        = imgTokens > 0 ? Math.round((saved / imgTokens) * 100) : 0;
+        const inputLabel = mimeType.startsWith('image/') ? 'Image' : 'Fichier';
+        setSavings({ imgTokens, outTokens, saved, pct, inputLabel });
 
         setMarkdown(data.markdown);
         setStatus('done');
@@ -266,7 +271,7 @@ export default function Home() {
                 <div className="savings-details">
                   <span className="savings-label">tokens économisés</span>
                   <div className="savings-numbers">
-                    <span>Image : ~{savings.imgTokens.toLocaleString()} tk</span>
+                    <span>{savings.inputLabel} : ~{savings.imgTokens.toLocaleString()} tk</span>
                     <span className="savings-arrow">→</span>
                     <span>Texte : ~{savings.outTokens.toLocaleString()} tk</span>
                     <span className="savings-saved">−{savings.saved.toLocaleString()} tk</span>
