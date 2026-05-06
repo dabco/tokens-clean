@@ -146,6 +146,7 @@ async function handlePptx(base64, res) {
   const sections = [];
   for (let i = 0; i < slideNames.length; i++) {
     const xml = await zip.files[slideNames[i]].async('text');
+    if (i === 0) console.log('[PPTX] slide1 XML (500 chars):', xml.slice(0, 500));
     const text = extractSlideText(xml);
     console.log(`[PPTX] slide ${i + 1} — texte extrait (${text.length} chars):`, text.slice(0, 200));
     if (text) {
