@@ -45,7 +45,7 @@ async function handleVision(base64, mimeType, res) {
       'Content-Type': 'application/json',
     },
     body: JSON.stringify({
-      model: 'pixtral-large-latest',
+      model: 'pixtral-12b-2409',
       messages: [
         {
           role: 'user',
