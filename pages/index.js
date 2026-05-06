@@ -186,8 +186,8 @@ export default function Home() {
       <style jsx>{`
         :root {
           --bg:           #0c0c0c;
-          --surface:      #141414;
-          --border:       #222;
+          --surface:      #1e1e1e;
+          --border:       #2a2a2a;
           --accent:       #e87c1a;
           --accent-dim:   #7a3e06;
           --text:         #e0d9d0;
@@ -244,8 +244,9 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           gap: 18px;
-          border-right: 1px solid var(--border);
+          border-right: 2px solid var(--accent);
           padding: 40px;
+          background: var(--bg);
           cursor: default;
           overflow: hidden;
           transition: background 0.15s;
@@ -310,10 +311,12 @@ export default function Home() {
           flex-direction: column;
           overflow: hidden;
           background: var(--surface);
+          border-left: 0;
         }
         .preview-header {
           padding: 13px 20px;
-          border-bottom: 1px solid var(--border);
+          border-bottom: 2px solid var(--border);
+          background: #252525;
           display: flex;
           align-items: center;
           gap: 10px;
