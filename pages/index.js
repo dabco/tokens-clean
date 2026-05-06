@@ -7,6 +7,7 @@ export default function Home() {
   const [filename, setFilename]   = useState('');
   const [dragging, setDragging]   = useState(false);
   const [toast, setToast]         = useState(false);
+  const [mode, setMode]           = useState('ocr'); // 'ocr' | 'vision'
   const fileInputRef              = useRef(null);
   const toastTimer                = useRef(null);
 
@@ -48,7 +49,7 @@ export default function Home() {
         const res  = await fetch('/api/convert', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ base64, mimeType }),
+          body:    JSON.stringify({ base64, mimeType, mode }),
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error);
@@ -101,6 +102,21 @@ export default function Home() {
           <div className="logo">D</div>
           <h1>DocDrop</h1>
           <span className="subtitle">image · pdf → markdown → presse-papier</span>
+
+          <div className="mode-toggle">
+            <button
+              className={`mode-btn${mode === 'ocr' ? ' active' : ''}`}
+              onClick={() => setMode('ocr')}
+            >
+              OCR
+            </button>
+            <button
+              className={`mode-btn${mode === 'vision' ? ' active' : ''}`}
+              onClick={() => setMode('vision')}
+            >
+              Vision
+            </button>
+          </div>
         </header>
 
         <main>
@@ -122,6 +138,11 @@ export default function Home() {
               <p><strong>Glisser une image ou un PDF</strong></p>
               <p>ou faire <strong>Cmd+V</strong> après un screenshot</p>
               <p className="filetypes">PNG · JPG · PDF · DOCX · PPTX</p>
+              <p className="mode-hint">
+                {mode === 'ocr'
+                  ? 'Mode OCR — extraction de texte'
+                  : 'Mode Vision — description de l\'interface avec positions'}
+              </p>
             </div>
 
             <button className="pick-btn" onClick={() => fileInputRef.current?.click()}>
@@ -304,6 +325,42 @@ export default function Home() {
           position: relative; z-index: 1;
         }
         .pick-btn:hover { border-color: var(--accent); color: var(--accent); }
+
+        /* ── Mode toggle ── */
+        .mode-toggle {
+          display: flex;
+          gap: 2px;
+          background: rgba(255,255,255,0.05);
+          border-radius: 6px;
+          padding: 3px;
+        }
+        .mode-btn {
+          background: none;
+          border: none;
+          color: var(--text-dim);
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          font-weight: 500;
+          padding: 4px 14px;
+          border-radius: 4px;
+          cursor: pointer;
+          transition: background 0.15s, color 0.15s;
+          letter-spacing: 0.05em;
+        }
+        .mode-btn.active {
+          background: var(--accent);
+          color: #000;
+        }
+        .mode-btn:not(.active):hover {
+          color: var(--text);
+        }
+        .mode-hint {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: var(--accent);
+          margin-top: 10px;
+          letter-spacing: 0.02em;
+        }
 
         /* ── Preview ── */
         .preview {
