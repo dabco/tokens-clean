@@ -125,19 +125,14 @@ async function handlePptx(base64, res) {
   const buffer = Buffer.from(base64, 'base64');
   const zip = await JSZip.loadAsync(buffer);
 
-  const allFiles = Object.keys(zip.files);
-  console.log('[PPTX] fichiers ZIP:', allFiles.filter(f => f.startsWith('ppt/')));
-
   // Récupère les slides dans l'ordre numérique
-  const slideNames = allFiles
+  const slideNames = Object.keys(zip.files)
     .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
     .sort((a, b) => {
       const numA = parseInt(a.match(/\d+/)[0], 10);
       const numB = parseInt(b.match(/\d+/)[0], 10);
       return numA - numB;
     });
-
-  console.log('[PPTX] slides trouvés:', slideNames);
 
   if (slideNames.length === 0) {
     return res.status(500).json({ error: 'Aucun slide trouvé dans le fichier PPTX.' });
@@ -146,16 +141,20 @@ async function handlePptx(base64, res) {
   const sections = [];
   for (let i = 0; i < slideNames.length; i++) {
     const xml = await zip.files[slideNames[i]].async('text');
-    if (i === 0) console.log('[PPTX] slide1 XML (500 chars):', xml.slice(0, 500));
     const text = extractSlideText(xml);
-    console.log(`[PPTX] slide ${i + 1} — texte extrait (${text.length} chars):`, text.slice(0, 200));
     if (text) {
       sections.push(`## Slide ${i + 1}\n\n${text}`);
     }
   }
 
+  if (sections.length === 0) {
+    return res.status(422).json({
+      error: 'image-based-pptx',
+      message: `Cette présentation (${slideNames.length} slides) ne contient pas de texte extractible — les slides semblent être des visuels ou des images.\n\nPour extraire le texte, convertissez le fichier en PDF (via PowerPoint, Keynote ou macOS : Fichier → Exporter → PDF), puis déposez le PDF ici en mode OCR.`,
+    });
+  }
+
   const markdown = sections.join('\n\n---\n\n');
-  console.log('[PPTX] markdown total:', markdown.length, 'chars');
   return res.status(200).json({ markdown });
 }
 
@@ -168,8 +167,6 @@ export default async function handler(req, res) {
   }
 
   const { base64, mimeType, mode } = req.body;
-
-  console.log('[convert] mimeType reçu:', mimeType, '| mode:', mode);
 
   if (!base64 || !mimeType) {
     return res.status(400).json({ error: 'Données manquantes' });

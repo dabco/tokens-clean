@@ -99,7 +99,7 @@ export default function Home() {
           body:    JSON.stringify({ base64, mimeType, mode: currentMode }),
         });
         const data = await res.json();
-        if (data.error) throw new Error(data.error);
+        if (data.error) throw new Error(data.message || data.error);
 
         // Calcul économies
         const outTokens  = Math.round(data.markdown.length / 4);
