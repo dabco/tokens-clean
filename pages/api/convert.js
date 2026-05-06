@@ -1,3 +1,6 @@
+import mammoth from 'mammoth';
+import JSZip from 'jszip';
+
 export const config = {
   api: {
     bodyParser: {
@@ -71,6 +74,75 @@ async function handleVision(base64, mimeType, res) {
   return res.status(200).json({ markdown });
 }
 
+async function handleDocx(base64, res) {
+  const buffer = Buffer.from(base64, 'base64');
+  const result = await mammoth.extractRawText({ buffer });
+
+  if (!result.value) {
+    return res.status(500).json({ error: 'Impossible d\'extraire le texte du fichier DOCX.' });
+  }
+
+  // Convertit en Markdown minimal : paragraphes séparés par ligne vide
+  const markdown = result.value
+    .split('\n')
+    .map((line) => line.trim())
+    .filter((line, i, arr) => line !== '' || arr[i - 1] !== '')
+    .join('\n');
+
+  return res.status(200).json({ markdown });
+}
+
+// Extrait le texte des paragraphes d'un slide XML PPTX
+function extractSlideText(xml) {
+  const paragraphs = [];
+  const pRegex = /<a:p[\s>][\s\S]*?<\/a:p>/g;
+  let pMatch;
+  while ((pMatch = pRegex.exec(xml)) !== null) {
+    const tRegex = /<a:t[^>]*>([\s\S]*?)<\/a:t>/g;
+    let tMatch;
+    let line = '';
+    while ((tMatch = tRegex.exec(pMatch[0])) !== null) {
+      line += tMatch[1];
+    }
+    const trimmed = line.trim();
+    if (trimmed) paragraphs.push(trimmed);
+  }
+  return paragraphs.join('\n');
+}
+
+async function handlePptx(base64, res) {
+  const buffer = Buffer.from(base64, 'base64');
+  const zip = await JSZip.loadAsync(buffer);
+
+  // Récupère les slides dans l'ordre numérique
+  const slideNames = Object.keys(zip.files)
+    .filter((name) => /^ppt\/slides\/slide\d+\.xml$/.test(name))
+    .sort((a, b) => {
+      const numA = parseInt(a.match(/\d+/)[0], 10);
+      const numB = parseInt(b.match(/\d+/)[0], 10);
+      return numA - numB;
+    });
+
+  if (slideNames.length === 0) {
+    return res.status(500).json({ error: 'Aucun slide trouvé dans le fichier PPTX.' });
+  }
+
+  const sections = [];
+  for (let i = 0; i < slideNames.length; i++) {
+    const xml = await zip.files[slideNames[i]].async('text');
+    const text = extractSlideText(xml);
+    if (text) {
+      sections.push(`## Slide ${i + 1}\n\n${text}`);
+    }
+  }
+
+  const markdown = sections.join('\n\n---\n\n');
+  return res.status(200).json({ markdown });
+}
+
+const DOCX_MIME = 'application/vnd.openxmlformats-officedocument.wordprocessingml.document';
+const PPTX_MIME = 'application/vnd.openxmlformats-officedocument.presentationml.presentation';
+
 export default async function handler(req, res) {
   if (req.method !== 'POST') {
     return res.status(405).json({ error: 'Méthode non autorisée' });
@@ -83,11 +155,16 @@ export default async function handler(req, res) {
   }
 
   try {
+    if (mimeType === DOCX_MIME) {
+      return await handleDocx(base64, res);
+    }
+    if (mimeType === PPTX_MIME) {
+      return await handlePptx(base64, res);
+    }
     if (mode === 'vision') {
       return await handleVision(base64, mimeType, res);
-    } else {
-      return await handleOcr(base64, mimeType, res);
     }
+    return await handleOcr(base64, mimeType, res);
   } catch (err) {
     return res.status(500).json({ error: err.message });
   }

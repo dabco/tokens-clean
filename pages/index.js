@@ -23,7 +23,8 @@ export default function Home() {
   // ── Compression image (max 1568px, JPEG 85%) ───
   const compressImage = (dataUrl, mimeType) => {
     return new Promise((resolve) => {
-      if (mimeType === 'application/pdf') { resolve(dataUrl); return; }
+      // Seules les images sont compressées — PDF/DOCX/PPTX passent tels quels
+      if (!mimeType.startsWith('image/')) { resolve(dataUrl); return; }
       const img = new Image();
       img.onload = () => {
         const MAX = 1568;
