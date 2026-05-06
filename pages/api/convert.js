@@ -168,6 +168,8 @@ export default async function handler(req, res) {
 
   const { base64, mimeType, mode } = req.body;
 
+  console.log('[convert] mimeType reçu:', mimeType, '| mode:', mode);
+
   if (!base64 || !mimeType) {
     return res.status(400).json({ error: 'Données manquantes' });
   }
