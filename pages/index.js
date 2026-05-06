@@ -1,40 +1,29 @@
-import { useState, useCallback, useRef, useEffect } from 'react';
+import { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
 
 export default function Home() {
-  const [status, setStatus]       = useState('idle');
-  const [markdown, setMarkdown]   = useState('');
-  const [filename, setFilename]   = useState('');
-  const [dragging, setDragging]   = useState(false);
-  const [toast, setToast]         = useState(false);
-  const [mode, setMode]           = useState('ocr'); // 'ocr' | 'vision'
-  const fileInputRef              = useRef(null);
-  const toastTimer                = useRef(null);
+  const [status, setStatus]     = useState('idle');
+  const [markdown, setMarkdown] = useState('');
+  const [filename, setFilename] = useState('');
+  const [dragging, setDragging] = useState(false);
+  const [toast, setToast]       = useState('');
+  const [mode, setMode]         = useState('ocr');
 
-  // Coller depuis le presse-papier (Cmd+V)
-  useEffect(() => {
-    const onPaste = (e) => {
-      const items = e.clipboardData?.items;
-      if (!items) return;
-      for (const item of items) {
-        if (item.type.startsWith('image/')) {
-          processFile(item.getAsFile());
-          break;
-        }
-      }
-    };
-    window.addEventListener('paste', onPaste);
-    return () => window.removeEventListener('paste', onPaste);
-  }, []);
+  // useRef pour éviter la stale closure dans les callbacks
+  const modeRef      = useRef('ocr');
+  const fileInputRef = useRef(null);
+  const toastTimer   = useRef(null);
 
-  const showToast = () => {
-    setToast(true);
-    clearTimeout(toastTimer.current);
-    toastTimer.current = setTimeout(() => setToast(false), 2800);
+  const updateMode = (m) => {
+    modeRef.current = m;
+    setMode(m);
   };
 
-  const processFile = useCallback(async (file) => {
+  // ── Traitement fichier ──────────────────────────
+  const processFile = async (file) => {
     if (!file) return;
+
+    const currentMode = modeRef.current;
     setStatus('loading');
     setFilename(file.name || 'capture');
     setMarkdown('');
@@ -49,7 +38,7 @@ export default function Home() {
         const res  = await fetch('/api/convert', {
           method:  'POST',
           headers: { 'Content-Type': 'application/json' },
-          body:    JSON.stringify({ base64, mimeType, mode }),
+          body:    JSON.stringify({ base64, mimeType, mode: currentMode }),
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error);
@@ -59,9 +48,9 @@ export default function Home() {
 
         try {
           await navigator.clipboard.writeText(data.markdown);
-          showToast();
+          showToast('Copié automatiquement !');
         } catch {
-          // clipboard non disponible (http) — afficher quand même le résultat
+          showToast('Converti — copie manuelle disponible');
         }
       } catch (err) {
         setStatus('error');
@@ -69,17 +58,43 @@ export default function Home() {
       }
     };
     reader.readAsDataURL(file);
+  };
+
+  const showToast = (msg) => {
+    setToast(msg);
+    clearTimeout(toastTimer.current);
+    toastTimer.current = setTimeout(() => setToast(''), 3000);
+  };
+
+  // ── Coller depuis presse-papier (Cmd+V) ────────
+  useEffect(() => {
+    const onPaste = async (e) => {
+      const items = e.clipboardData?.items;
+      if (!items) return;
+      for (const item of items) {
+        if (item.type.startsWith('image/')) {
+          e.preventDefault();
+          const file = item.getAsFile();
+          if (file) await processFile(file);
+          return;
+        }
+      }
+    };
+    window.addEventListener('paste', onPaste);
+    return () => window.removeEventListener('paste', onPaste);
   }, []);
 
-  const onDrop = useCallback((e) => {
+  // ── Drag & Drop ────────────────────────────────
+  const onDragEnter = (e) => { e.preventDefault(); e.stopPropagation(); setDragging(true); };
+  const onDragOver  = (e) => { e.preventDefault(); e.stopPropagation(); setDragging(true); };
+  const onDragLeave = (e) => { e.preventDefault(); e.stopPropagation(); setDragging(false); };
+  const onDrop      = async (e) => {
     e.preventDefault();
+    e.stopPropagation();
     setDragging(false);
-    const file = e.dataTransfer.files[0];
-    if (file) processFile(file);
-  }, [processFile]);
-
-  const onDragOver  = (e) => { e.preventDefault(); setDragging(true);  };
-  const onDragLeave = ()  => setDragging(false);
+    const file = e.dataTransfer.files?.[0];
+    if (file) await processFile(file);
+  };
 
   const badgeLabel = { idle: 'En attente', loading: 'Conversion…', done: 'Converti', error: 'Erreur' }[status];
 
@@ -103,46 +118,52 @@ export default function Home() {
           <h1>DocDrop</h1>
           <span className="subtitle">image · pdf → markdown → presse-papier</span>
 
-          <div className="mode-toggle">
-            <button
-              className={`mode-btn${mode === 'ocr' ? ' active' : ''}`}
-              onClick={() => setMode('ocr')}
-            >
-              OCR
-            </button>
-            <button
-              className={`mode-btn${mode === 'vision' ? ' active' : ''}`}
-              onClick={() => setMode('vision')}
-            >
-              Vision
-            </button>
+          {/* Toggle OCR / Vision */}
+          <div className="toggle-wrap">
+            <div className={`toggle-track mode-${mode}`}>
+              <button
+                className={`toggle-opt${mode === 'ocr' ? ' active' : ''}`}
+                onClick={() => updateMode('ocr')}
+              >
+                OCR
+              </button>
+              <button
+                className={`toggle-opt${mode === 'vision' ? ' active' : ''}`}
+                onClick={() => updateMode('vision')}
+              >
+                Vision
+              </button>
+              <div className={`toggle-pill mode-${mode}`} />
+            </div>
+            <span className="toggle-hint">
+              {mode === 'ocr' ? 'Extraction texte' : 'Analyse interface + positions'}
+            </span>
           </div>
         </header>
 
         <main>
 
-          {/* Zone de dépôt */}
+          {/* ── Zone de dépôt (gauche, noire) ── */}
           <div
             className={`dropzone${dragging ? ' drag-over' : ''}`}
-            onDrop={onDrop}
+            onDragEnter={onDragEnter}
             onDragOver={onDragOver}
             onDragLeave={onDragLeave}
+            onDrop={onDrop}
           >
             <div className="grid-bg" />
 
-            <div className="drop-ring">
-              <span className="drop-icon">{status === 'loading' ? '⟳' : '⬇'}</span>
+            <div className={`drop-ring${dragging ? ' active' : ''}`}>
+              {status === 'loading'
+                ? <div className="ring-spinner" />
+                : <span className="drop-icon">{dragging ? '↓' : '⬇'}</span>
+              }
             </div>
 
             <div className="drop-label">
               <p><strong>Glisser une image ou un PDF</strong></p>
               <p>ou faire <strong>Cmd+V</strong> après un screenshot</p>
               <p className="filetypes">PNG · JPG · PDF · DOCX · PPTX</p>
-              <p className="mode-hint">
-                {mode === 'ocr'
-                  ? 'Mode OCR — extraction de texte'
-                  : 'Mode Vision — description de l\'interface avec positions'}
-              </p>
             </div>
 
             <button className="pick-btn" onClick={() => fileInputRef.current?.click()}>
@@ -153,16 +174,31 @@ export default function Home() {
               type="file"
               accept="image/*,.pdf,.docx,.pptx"
               style={{ display: 'none' }}
-              onChange={(e) => processFile(e.target.files[0])}
+              onChange={(e) => { const f = e.target.files?.[0]; if (f) processFile(f); }}
             />
+
+            {filename && (
+              <p className="current-file">📄 {filename}</p>
+            )}
           </div>
 
-          {/* Panneau Markdown */}
+          {/* ── Panneau Markdown (droite, bleu-ardoise) ── */}
           <div className="preview">
             <div className="preview-header">
               <h2>Markdown</h2>
               {status === 'loading' && <div className="spinner" />}
               <span className={`badge badge-${status}`}>{badgeLabel}</span>
+              {markdown && (
+                <button
+                  className="copy-btn"
+                  onClick={async () => {
+                    await navigator.clipboard.writeText(markdown);
+                    showToast('Copié !');
+                  }}
+                >
+                  Copier
+                </button>
+              )}
             </div>
             <pre className={`output${markdown ? ' has-content' : ''}`}>
               {markdown || 'Déposez un fichier pour démarrer…'}
@@ -173,30 +209,18 @@ export default function Home() {
 
         {/* Footer */}
         <footer>
-          <span className="filename">{filename}</span>
-          {markdown && (
-            <button
-              className="copy-btn"
-              onClick={async () => {
-                await navigator.clipboard.writeText(markdown);
-                showToast();
-              }}
-            >
-              Copier
-            </button>
-          )}
+          <span className="filename">{filename || 'Aucun fichier'}</span>
+          <span className="footer-mode">Mode : <strong>{mode.toUpperCase()}</strong></span>
         </footer>
 
         {/* Toast */}
-        <div className={`toast${toast ? ' show' : ''}`}>
-          Markdown copié dans le presse-papier !
-        </div>
+        {toast && <div className="toast show">{toast}</div>}
 
       </div>
 
       <style jsx global>{`
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
-        html, body { height: 100%; }
+        html, body { height: 100%; overflow: hidden; }
         body {
           background: #0c0c0c;
           color: #e0d9d0;
@@ -205,59 +229,97 @@ export default function Home() {
       `}</style>
 
       <style jsx>{`
-        :root {
-          --bg:           #0c0c0c;
-          --surface:      #1e1e1e;
-          --border:       #2a2a2a;
-          --accent:       #e87c1a;
-          --accent-dim:   #7a3e06;
-          --text:         #e0d9d0;
-          --text-dim:     #6b6560;
-          --green:        #4caf7d;
-          --mono:         'IBM Plex Mono', monospace;
-        }
-
         .root {
           height: 100vh;
           display: grid;
-          grid-template-rows: auto 1fr auto;
+          grid-template-rows: 56px 1fr 40px;
           overflow: hidden;
         }
 
         /* ── Header ── */
         header {
-          padding: 16px 28px;
-          border-bottom: 1px solid var(--border);
+          padding: 0 24px;
+          border-bottom: 1px solid #2a2a2a;
           display: flex;
           align-items: center;
-          gap: 12px;
+          gap: 14px;
+          background: #111;
+          flex-shrink: 0;
         }
         .logo {
           width: 28px; height: 28px;
-          background: var(--accent);
+          background: #e87c1a;
           border-radius: 6px;
           display: flex; align-items: center; justify-content: center;
-          font-family: var(--mono);
-          font-size: 14px; font-weight: 500;
-          color: #000;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 14px; font-weight: 500; color: #000;
           flex-shrink: 0;
         }
         header h1 { font-size: 15px; font-weight: 600; letter-spacing: -0.02em; }
         .subtitle {
-          font-size: 12px;
-          color: var(--text-dim);
+          font-size: 11px; color: #555;
           font-family: 'IBM Plex Mono', monospace;
-          margin-left: auto;
         }
+
+        /* ── Toggle ── */
+        .toggle-wrap {
+          margin-left: auto;
+          display: flex;
+          align-items: center;
+          gap: 12px;
+        }
+        .toggle-hint {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: #666;
+        }
+        .toggle-track {
+          position: relative;
+          display: flex;
+          background: #1a1a1a;
+          border: 1px solid #333;
+          border-radius: 8px;
+          padding: 3px;
+          gap: 0;
+        }
+        .toggle-opt {
+          position: relative;
+          z-index: 2;
+          background: none;
+          border: none;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 12px;
+          font-weight: 500;
+          padding: 5px 18px;
+          border-radius: 6px;
+          cursor: pointer;
+          color: #555;
+          transition: color 0.2s;
+          letter-spacing: 0.04em;
+        }
+        .toggle-opt.active { color: #000; }
+        .toggle-opt:not(.active):hover { color: #aaa; }
+        .toggle-pill {
+          position: absolute;
+          top: 3px; bottom: 3px;
+          width: calc(50% - 3px);
+          border-radius: 5px;
+          background: #e87c1a;
+          transition: transform 0.2s cubic-bezier(0.4,0,0.2,1);
+          z-index: 1;
+        }
+        .toggle-pill.mode-ocr    { transform: translateX(0); }
+        .toggle-pill.mode-vision { transform: translateX(100%); }
 
         /* ── Main ── */
         main {
           display: grid;
           grid-template-columns: 1fr 1fr;
           overflow: hidden;
+          border-right: none;
         }
 
-        /* ── Drop zone ── */
+        /* ── Drop zone (gauche - noire) ── */
         .dropzone {
           position: relative;
           display: flex;
@@ -265,220 +327,166 @@ export default function Home() {
           align-items: center;
           justify-content: center;
           gap: 18px;
-          border-right: 2px solid var(--accent);
           padding: 40px;
-          background: var(--bg);
-          cursor: default;
+          background: #0c0c0c;
+          border-right: 3px solid #e87c1a;
           overflow: hidden;
-          transition: background 0.15s;
+          transition: background 0.2s;
         }
+        .dropzone.drag-over { background: rgba(232,124,26,0.06); }
+
         .grid-bg {
           position: absolute; inset: 0;
           background-image:
-            linear-gradient(var(--border) 1px, transparent 1px),
-            linear-gradient(90deg, var(--border) 1px, transparent 1px);
+            linear-gradient(rgba(255,255,255,0.03) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,0.03) 1px, transparent 1px);
           background-size: 32px 32px;
-          opacity: 0.3;
           pointer-events: none;
         }
-        .dropzone.drag-over { background: rgba(232,124,26,0.04); }
+
         .drop-ring {
-          width: 140px; height: 140px;
+          width: 130px; height: 130px;
           border-radius: 50%;
-          border: 2px dashed var(--border);
+          border: 2px dashed #333;
           display: flex; align-items: center; justify-content: center;
           transition: border-color 0.2s, box-shadow 0.2s;
           position: relative; z-index: 1;
         }
-        .dropzone.drag-over .drop-ring {
-          border-color: var(--accent);
-          box-shadow: 0 0 0 4px rgba(232,124,26,0.1);
+        .drop-ring.active {
+          border-color: #e87c1a;
+          box-shadow: 0 0 0 6px rgba(232,124,26,0.1);
         }
-        .drop-icon {
-          font-size: 48px; line-height: 1;
-          color: var(--text-dim);
-          transition: color 0.2s;
+        .drop-icon { font-size: 44px; color: #444; }
+        .dropzone.drag-over .drop-icon { color: #e87c1a; }
+
+        .ring-spinner {
+          width: 36px; height: 36px;
+          border: 3px solid rgba(232,124,26,0.2);
+          border-top-color: #e87c1a;
+          border-radius: 50%;
+          animation: spin 0.8s linear infinite;
         }
-        .dropzone.drag-over .drop-icon { color: var(--accent); }
+        @keyframes spin { to { transform: rotate(360deg); } }
 
         .drop-label { text-align: center; position: relative; z-index: 1; }
-        .drop-label p { font-size: 14px; color: var(--text-dim); line-height: 1.7; }
-        .drop-label strong { color: var(--text); font-weight: 600; }
+        .drop-label p { font-size: 14px; color: #666; line-height: 1.8; }
+        .drop-label strong { color: #ccc; font-weight: 600; }
         .filetypes {
           font-family: 'IBM Plex Mono', monospace;
-          font-size: 11px;
-          color: var(--accent-dim);
-          letter-spacing: 0.05em;
-          margin-top: 8px;
+          font-size: 11px; color: #4a3020; letter-spacing: 0.05em; margin-top: 6px;
         }
 
         .pick-btn {
           background: none;
-          border: 1px solid var(--border);
-          color: var(--text-dim);
+          border: 1px solid #2a2a2a;
+          color: #555;
           font-family: 'IBM Plex Mono', monospace;
           font-size: 11px;
-          padding: 6px 16px;
-          border-radius: 4px;
+          padding: 6px 18px; border-radius: 5px;
           cursor: pointer;
           transition: border-color 0.15s, color 0.15s;
           position: relative; z-index: 1;
         }
-        .pick-btn:hover { border-color: var(--accent); color: var(--accent); }
+        .pick-btn:hover { border-color: #e87c1a; color: #e87c1a; }
 
-        /* ── Mode toggle ── */
-        .mode-toggle {
-          display: flex;
-          gap: 2px;
-          background: rgba(255,255,255,0.05);
-          border-radius: 6px;
-          padding: 3px;
-        }
-        .mode-btn {
-          background: none;
-          border: none;
-          color: var(--text-dim);
+        .current-file {
           font-family: 'IBM Plex Mono', monospace;
-          font-size: 11px;
-          font-weight: 500;
-          padding: 4px 14px;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: background 0.15s, color 0.15s;
-          letter-spacing: 0.05em;
-        }
-        .mode-btn.active {
-          background: var(--accent);
-          color: #000;
-        }
-        .mode-btn:not(.active):hover {
-          color: var(--text);
-        }
-        .mode-hint {
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 11px;
-          color: var(--accent);
-          margin-top: 10px;
-          letter-spacing: 0.02em;
+          font-size: 11px; color: #e87c1a;
+          position: relative; z-index: 1;
         }
 
-        /* ── Preview ── */
+        /* ── Preview (droite - bleu ardoise) ── */
         .preview {
           display: flex;
           flex-direction: column;
           overflow: hidden;
-          background: var(--surface);
-          border-left: 0;
+          background: #1a2035;
         }
         .preview-header {
-          padding: 13px 20px;
-          border-bottom: 2px solid var(--border);
-          background: #252525;
-          display: flex;
-          align-items: center;
-          gap: 10px;
+          padding: 12px 20px;
+          border-bottom: 1px solid #2a3050;
+          background: #151c30;
+          display: flex; align-items: center; gap: 10px;
           flex-shrink: 0;
         }
         .preview-header h2 {
-          font-size: 11px;
-          font-weight: 500;
+          font-size: 11px; font-weight: 500;
           font-family: 'IBM Plex Mono', monospace;
-          color: var(--text-dim);
-          letter-spacing: 0.08em;
-          text-transform: uppercase;
-          flex: 1;
+          color: #5a7ab0; letter-spacing: 0.08em;
+          text-transform: uppercase; flex: 1;
         }
 
-        /* Spinner */
         .spinner {
           width: 14px; height: 14px;
-          border: 2px solid rgba(232,124,26,0.2);
-          border-top-color: var(--accent);
+          border: 2px solid rgba(90,122,176,0.3);
+          border-top-color: #5a7ab0;
           border-radius: 50%;
-          animation: spin 0.7s linear infinite;
+          animation: spin 0.8s linear infinite;
         }
-        @keyframes spin { to { transform: rotate(360deg); } }
 
-        /* Badge */
         .badge {
           font-family: 'IBM Plex Mono', monospace;
-          font-size: 11px;
-          padding: 3px 10px;
-          border-radius: 20px;
-          font-weight: 500;
+          font-size: 11px; padding: 3px 10px;
+          border-radius: 20px; font-weight: 500;
         }
-        .badge-idle    { background: rgba(255,255,255,0.05); color: var(--text-dim); }
-        .badge-loading { background: rgba(232,124,26,0.15); color: var(--accent); }
-        .badge-done    { background: rgba(76,175,125,0.15); color: var(--green); }
+        .badge-idle    { background: rgba(255,255,255,0.04); color: #555; }
+        .badge-loading { background: rgba(90,122,176,0.15); color: #5a7ab0; }
+        .badge-done    { background: rgba(76,175,125,0.15); color: #4caf7d; }
         .badge-error   { background: rgba(255,80,80,0.15); color: #ff5050; }
 
-        /* Output */
-        .output {
-          flex: 1;
-          overflow-y: auto;
-          padding: 20px;
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 12.5px;
-          line-height: 1.7;
-          color: var(--text-dim);
-          white-space: pre-wrap;
-          word-break: break-word;
-        }
-        .output.has-content { color: var(--text); }
-        .output::-webkit-scrollbar { width: 4px; }
-        .output::-webkit-scrollbar-track { background: transparent; }
-        .output::-webkit-scrollbar-thumb { background: var(--border); border-radius: 2px; }
-
-        /* ── Footer ── */
-        footer {
-          padding: 10px 28px;
-          border-top: 1px solid var(--border);
-          display: flex;
-          align-items: center;
-          gap: 12px;
-        }
-        .filename {
-          font-family: 'IBM Plex Mono', monospace;
-          font-size: 11px;
-          color: var(--text-dim);
-          flex: 1;
-          overflow: hidden;
-          text-overflow: ellipsis;
-          white-space: nowrap;
-        }
         .copy-btn {
-          background: var(--accent);
-          color: #000;
-          border: none;
+          background: #e87c1a; color: #000; border: none;
           font-family: 'IBM Plex Mono', monospace;
-          font-size: 11px;
-          font-weight: 500;
-          padding: 6px 16px;
-          border-radius: 4px;
-          cursor: pointer;
-          transition: opacity 0.15s;
+          font-size: 11px; font-weight: 500;
+          padding: 5px 14px; border-radius: 4px;
+          cursor: pointer; transition: opacity 0.15s;
         }
         .copy-btn:hover { opacity: 0.85; }
 
+        .output {
+          flex: 1; overflow-y: auto; padding: 20px;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 12.5px; line-height: 1.7;
+          color: #3a5080; white-space: pre-wrap; word-break: break-word;
+        }
+        .output.has-content { color: #c8d8f0; }
+        .output::-webkit-scrollbar { width: 4px; }
+        .output::-webkit-scrollbar-track { background: transparent; }
+        .output::-webkit-scrollbar-thumb { background: #2a3050; border-radius: 2px; }
+
+        /* ── Footer ── */
+        footer {
+          padding: 0 24px;
+          border-top: 1px solid #1a1a1a;
+          background: #0e0e0e;
+          display: flex; align-items: center; gap: 12px;
+        }
+        .filename {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px; color: #444; flex: 1;
+          overflow: hidden; text-overflow: ellipsis; white-space: nowrap;
+        }
+        .footer-mode {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px; color: #555;
+        }
+        .footer-mode strong { color: #e87c1a; }
+
         /* ── Toast ── */
         .toast {
-          position: fixed;
-          bottom: 24px;
-          left: 50%;
-          transform: translateX(-50%) translateY(16px);
-          background: var(--green);
-          color: #000;
+          position: fixed; bottom: 24px; left: 50%;
+          transform: translateX(-50%);
+          background: #4caf7d; color: #000;
           font-family: 'IBM Plex Mono', monospace;
-          font-size: 12px;
-          font-weight: 500;
-          padding: 10px 22px;
-          border-radius: 6px;
-          opacity: 0;
-          transition: opacity 0.2s, transform 0.2s;
-          pointer-events: none;
+          font-size: 12px; font-weight: 500;
+          padding: 10px 24px; border-radius: 6px;
           white-space: nowrap;
+          animation: fadeInUp 0.2s ease;
         }
-        .toast.show { opacity: 1; transform: translateX(-50%) translateY(0); }
+        @keyframes fadeInUp {
+          from { opacity: 0; transform: translateX(-50%) translateY(10px); }
+          to   { opacity: 1; transform: translateX(-50%) translateY(0); }
+        }
       `}</style>
     </>
   );
