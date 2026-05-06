@@ -20,6 +20,28 @@ export default function Home() {
     setMode(m);
   };
 
+  // ── Compression image (max 1568px, JPEG 85%) ───
+  const compressImage = (dataUrl, mimeType) => {
+    return new Promise((resolve) => {
+      if (mimeType === 'application/pdf') { resolve(dataUrl); return; }
+      const img = new Image();
+      img.onload = () => {
+        const MAX = 1568;
+        let { naturalWidth: w, naturalHeight: h } = img;
+        if (w > MAX || h > MAX) {
+          const r = Math.min(MAX / w, MAX / h);
+          w = Math.round(w * r);
+          h = Math.round(h * r);
+        }
+        const canvas = document.createElement('canvas');
+        canvas.width = w; canvas.height = h;
+        canvas.getContext('2d').drawImage(img, 0, 0, w, h);
+        resolve(canvas.toDataURL('image/jpeg', 0.85));
+      };
+      img.src = dataUrl;
+    });
+  };
+
   // ── Estimation tokens image (formule Claude) ───
   const estimateImageTokens = (file, dataUrl) => {
     return new Promise((resolve) => {
@@ -53,13 +75,16 @@ export default function Home() {
 
     const reader = new FileReader();
     reader.onload = async (e) => {
-      const dataUrl  = e.target.result;
-      const base64   = dataUrl.split(',')[1];
-      const mimeType = file.type || 'image/png';
+      const rawDataUrl = e.target.result;
+      const mimeType   = file.type || 'image/png';
+
+      // Compression avant envoi (max 1568px, JPEG 85%)
+      const dataUrl = await compressImage(rawDataUrl, mimeType);
+      const base64  = dataUrl.split(',')[1];
 
       // Estimation tokens image avant envoi
       const imgTokens = mimeType.startsWith('image/')
-        ? await estimateImageTokens(file, dataUrl)
+        ? await estimateImageTokens(file, rawDataUrl)
         : Math.round(base64.length * 0.75 / 750); // fallback PDF
 
       try {
