@@ -8,6 +8,7 @@ export default function Home() {
   const [dragging, setDragging] = useState(false);
   const [toast, setToast]       = useState('');
   const [mode, setMode]         = useState('ocr');
+  const [savings, setSavings]   = useState(null); // { imgTokens, outTokens, saved, pct }
 
   // useRef pour éviter la stale closure dans les callbacks
   const modeRef      = useRef('ocr');
@@ -19,6 +20,27 @@ export default function Home() {
     setMode(m);
   };
 
+  // ── Estimation tokens image (formule Claude) ───
+  const estimateImageTokens = (file, dataUrl) => {
+    return new Promise((resolve) => {
+      const img = new Image();
+      img.onload = () => {
+        // Claude : ~(w × h) / 750, plafonné à ~1568px sur le grand côté
+        const maxSide = 1568;
+        let w = img.naturalWidth;
+        let h = img.naturalHeight;
+        if (w > maxSide || h > maxSide) {
+          const ratio = Math.min(maxSide / w, maxSide / h);
+          w = Math.round(w * ratio);
+          h = Math.round(h * ratio);
+        }
+        resolve(Math.round((w * h) / 750));
+      };
+      img.onerror = () => resolve(1500); // fallback
+      img.src = dataUrl;
+    });
+  };
+
   // ── Traitement fichier ──────────────────────────
   const processFile = async (file) => {
     if (!file) return;
@@ -27,12 +49,18 @@ export default function Home() {
     setStatus('loading');
     setFilename(file.name || 'capture');
     setMarkdown('');
+    setSavings(null);
 
     const reader = new FileReader();
     reader.onload = async (e) => {
       const dataUrl  = e.target.result;
       const base64   = dataUrl.split(',')[1];
       const mimeType = file.type || 'image/png';
+
+      // Estimation tokens image avant envoi
+      const imgTokens = mimeType.startsWith('image/')
+        ? await estimateImageTokens(file, dataUrl)
+        : Math.round(base64.length * 0.75 / 750); // fallback PDF
 
       try {
         const res  = await fetch('/api/convert', {
@@ -42,6 +70,12 @@ export default function Home() {
         });
         const data = await res.json();
         if (data.error) throw new Error(data.error);
+
+        // Calcul économies
+        const outTokens = Math.round(data.markdown.length / 4);
+        const saved     = Math.max(0, imgTokens - outTokens);
+        const pct       = imgTokens > 0 ? Math.round((saved / imgTokens) * 100) : 0;
+        setSavings({ imgTokens, outTokens, saved, pct });
 
         setMarkdown(data.markdown);
         setStatus('done');
@@ -200,6 +234,27 @@ export default function Home() {
                 </button>
               )}
             </div>
+            {savings && (
+              <div className="savings-bar">
+                <div className="savings-pct">{savings.pct}%</div>
+                <div className="savings-details">
+                  <span className="savings-label">tokens économisés</span>
+                  <div className="savings-numbers">
+                    <span>Image : ~{savings.imgTokens.toLocaleString()} tk</span>
+                    <span className="savings-arrow">→</span>
+                    <span>Texte : ~{savings.outTokens.toLocaleString()} tk</span>
+                    <span className="savings-saved">−{savings.saved.toLocaleString()} tk</span>
+                  </div>
+                </div>
+                <div className="savings-bar-track">
+                  <div
+                    className="savings-bar-fill"
+                    style={{ width: `${Math.min(savings.pct, 100)}%` }}
+                  />
+                </div>
+              </div>
+            )}
+
             <pre className={`output${markdown ? ' has-content' : ''}`}>
               {markdown || 'Déposez un fichier pour démarrer…'}
             </pre>
@@ -442,6 +497,61 @@ export default function Home() {
           cursor: pointer; transition: opacity 0.15s;
         }
         .copy-btn:hover { opacity: 0.85; }
+
+        /* ── Savings bar ── */
+        .savings-bar {
+          padding: 12px 20px;
+          border-bottom: 1px solid #2a3050;
+          background: #111827;
+          display: grid;
+          grid-template-columns: 56px 1fr;
+          grid-template-rows: auto auto;
+          gap: 6px 14px;
+          align-items: center;
+        }
+        .savings-pct {
+          grid-row: 1 / 3;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 28px;
+          font-weight: 500;
+          color: #4caf7d;
+          line-height: 1;
+          text-align: center;
+        }
+        .savings-label {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 10px;
+          text-transform: uppercase;
+          letter-spacing: 0.08em;
+          color: #4a6080;
+        }
+        .savings-numbers {
+          display: flex;
+          align-items: center;
+          gap: 8px;
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px;
+          color: #6080a0;
+        }
+        .savings-arrow { color: #3a5070; }
+        .savings-saved {
+          color: #4caf7d;
+          font-weight: 500;
+          margin-left: 4px;
+        }
+        .savings-bar-track {
+          grid-column: 2;
+          height: 3px;
+          background: #1e2a3a;
+          border-radius: 2px;
+          overflow: hidden;
+        }
+        .savings-bar-fill {
+          height: 100%;
+          background: linear-gradient(90deg, #4caf7d, #7dd8a8);
+          border-radius: 2px;
+          transition: width 0.6s ease;
+        }
 
         .output {
           flex: 1; overflow-y: auto; padding: 20px;
