@@ -357,7 +357,7 @@ export default function Home() {
           text-decoration: none; margin-left: auto;
           transition: color 0.2s;
         }
-        .docs-link:hover { color: #e87c1a; }
+        .docs-link:hover { color: #D2F909; }
 
         /* ── Toggle ── */
         .toggle-wrap {

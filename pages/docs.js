@@ -5,10 +5,10 @@ export default function Docs() {
   return (
     <>
       <Head>
-        <title>DocDrop — Documentation</title>
+        <title>TokensClean — Documentation</title>
         <link rel="preconnect" href="https://fonts.googleapis.com" />
         <link
-          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Space+Grotesk:wght@300;400;600&display=swap"
+          href="https://fonts.googleapis.com/css2?family=IBM+Plex+Mono:wght@400;500&family=Montserrat:wght@400;700;900&display=swap"
           rel="stylesheet"
         />
       </Head>
@@ -16,9 +16,9 @@ export default function Docs() {
       <div className="page">
         <header>
           <Link href="/" className="logo-link">
-            <div className="logo">D</div>
+            <div className="logo">TC</div>
             <div>
-              <h1>DocDrop</h1>
+              <h1>TokensClean</h1>
               <p className="tagline">image · pdf → markdown → presse-papier</p>
             </div>
           </Link>
@@ -47,7 +47,7 @@ export default function Docs() {
                 <tr><td>PNG, JPG, GIF, WEBP</td><td>Mistral OCR</td><td>Compression automatique si &gt; 1568px</td></tr>
                 <tr><td>PDF</td><td>Mistral OCR</td><td>Toutes les pages, avec images</td></tr>
                 <tr><td>DOCX</td><td>mammoth</td><td>Extraction texte brut</td></tr>
-                <tr><td>PPTX</td><td>jszip</td><td>Slides texte uniquement — les slides image-based nécessitent une export PDF</td></tr>
+                <tr><td>PPTX</td><td>jszip</td><td>Slides texte uniquement — les slides image-based nécessitent un export PDF</td></tr>
               </tbody>
             </table>
 
@@ -55,7 +55,6 @@ export default function Docs() {
             <ul>
               <li><strong>OCR</strong> — extrait le texte d'un document ou d'une image. Mode par défaut.</li>
               <li><strong>Vision</strong> — analyse une interface utilisateur et décrit les éléments cliquables avec leurs positions. Utile pour les screenshots d'apps.</li>
-              <li><strong>Extraction texte</strong> — traitement local pour DOCX et PPTX, sans appel API.</li>
             </ul>
 
             <h3>Limite de taille</h3>
@@ -74,8 +73,7 @@ export default function Docs() {
 
             <h3>Installation</h3>
             <div className="code-block">
-              <pre>{`# 1. Cloner ou télécharger le dossier mcp/
-git clone https://github.com/dabco/docdrop-web.git
+              <pre>{`git clone https://github.com/dabco/docdrop-web.git
 cd docdrop-web/mcp
 npm install`}</pre>
             </div>
@@ -85,29 +83,28 @@ npm install`}</pre>
             <div className="code-block">
               <pre>{`{
   "mcpServers": {
-    "docdrop": {
+    "tokensclean": {
       "command": "node",
       "args": ["/chemin/absolu/vers/docdrop-web/mcp/index.js"]
     }
   }
 }`}</pre>
             </div>
-            <p>Remplacez <code>/chemin/absolu/vers/docdrop-web</code> par le vrai chemin sur votre machine, par exemple <code>/Users/david/docdrop-web</code>.</p>
+            <p>Remplacez <code>/chemin/absolu/vers/docdrop-web</code> par le chemin réel sur votre machine, ex. <code>/Users/david/docdrop-web</code>.</p>
 
-            <h3>Utilisation</h3>
-            <p>Dans Claude Code, l'outil est disponible automatiquement. Exemples :</p>
+            <h3>Exemples d'utilisation</h3>
             <div className="code-block">
               <pre>{`# Convertir un PDF
 "Convertis ~/Desktop/rapport.pdf en Markdown"
 
-# Convertir une image
+# Extraire le texte d'une image
 "Extrais le texte de ~/Downloads/screenshot.png"
 
-# Analyser une interface (mode vision)
-"Analyse cette interface : ~/Desktop/app-ui.png" (mode vision)`}</pre>
+# Analyser une interface UI (mode vision)
+"Analyse cette interface : ~/Desktop/app-ui.png"`}</pre>
             </div>
 
-            <h3>Paramètres de l'outil</h3>
+            <h3>Paramètres</h3>
             <table>
               <thead>
                 <tr><th>Paramètre</th><th>Type</th><th>Description</th></tr>
@@ -128,18 +125,19 @@ npm install`}</pre>
 
           .page {
             min-height: 100vh;
-            background: #0c0c0c;
-            color: #e0d9d0;
-            font-family: 'Space Grotesk', sans-serif;
+            background: #000;
+            color: #fff;
+            font-family: 'Montserrat', sans-serif;
           }
 
           header {
             display: flex;
             align-items: center;
             justify-content: space-between;
-            padding: 14px 24px;
-            background: #111;
-            border-bottom: 3px solid #e87c1a;
+            padding: 0 24px;
+            height: 52px;
+            background: #000;
+            border-bottom: 1px solid #111;
           }
 
           .logo-link {
@@ -151,24 +149,27 @@ npm install`}</pre>
           }
 
           .logo {
-            width: 32px; height: 32px;
-            background: #e87c1a;
+            height: 28px;
+            padding: 0 8px;
+            background: #D2F909;
+            border-radius: 6px;
             display: flex; align-items: center; justify-content: center;
-            font-family: 'IBM Plex Mono', monospace;
-            font-size: 14px; font-weight: 500; color: #000;
+            font-family: 'Montserrat', sans-serif;
+            font-size: 11px; font-weight: 900; color: #000;
+            letter-spacing: 0.04em;
           }
 
-          header h1 { font-size: 15px; font-weight: 600; }
-          .tagline { font-size: 11px; color: #555; font-family: 'IBM Plex Mono', monospace; }
+          header h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
+          .tagline { font-size: 11px; color: #444; font-family: 'IBM Plex Mono', monospace; }
 
           .back-btn {
             font-family: 'IBM Plex Mono', monospace;
-            font-size: 12px;
-            color: #666;
+            font-size: 11px;
+            color: #444;
             text-decoration: none;
             transition: color 0.2s;
           }
-          .back-btn:hover { color: #e87c1a; }
+          .back-btn:hover { color: #D2F909; }
 
           main {
             max-width: 760px;
@@ -182,27 +183,27 @@ npm install`}</pre>
           section { display: flex; flex-direction: column; gap: 20px; }
 
           h2 {
-            font-size: 20px;
-            font-weight: 600;
-            color: #e87c1a;
+            font-size: 18px;
+            font-weight: 700;
+            color: #D2F909;
             display: flex;
             align-items: center;
             gap: 10px;
-            padding-bottom: 10px;
-            border-bottom: 1px solid #222;
+            padding-bottom: 12px;
+            border-bottom: 1px solid #111;
           }
 
           h3 {
-            font-size: 13px;
-            font-weight: 600;
+            font-size: 10px;
+            font-weight: 700;
             text-transform: uppercase;
-            letter-spacing: 0.08em;
-            color: #888;
+            letter-spacing: 0.1em;
+            color: #444;
             font-family: 'IBM Plex Mono', monospace;
-            margin-top: 8px;
+            margin-top: 4px;
           }
 
-          p { font-size: 14px; line-height: 1.7; color: #bbb; }
+          p { font-size: 14px; line-height: 1.7; color: #888; }
 
           ul {
             list-style: none;
@@ -213,7 +214,7 @@ npm install`}</pre>
 
           li {
             font-size: 14px;
-            color: #bbb;
+            color: #888;
             line-height: 1.6;
             padding-left: 16px;
             position: relative;
@@ -222,24 +223,24 @@ npm install`}</pre>
             content: '—';
             position: absolute;
             left: 0;
-            color: #e87c1a;
+            color: #D2F909;
           }
 
-          strong { color: #e0d9d0; }
+          strong { color: #fff; }
 
           code {
             font-family: 'IBM Plex Mono', monospace;
             font-size: 12px;
-            background: #1a1a1a;
-            border: 1px solid #2a2a2a;
+            background: #0a0a0a;
+            border: 1px solid #1a1a1a;
             padding: 2px 6px;
-            color: #e87c1a;
+            color: #D2F909;
           }
 
           .code-block {
-            background: #0a0a0a;
-            border: 1px solid #222;
-            border-left: 3px solid #e87c1a;
+            background: #060606;
+            border: 1px solid #111;
+            border-left: 3px solid #D2F909;
             overflow-x: auto;
           }
 
@@ -248,7 +249,7 @@ npm install`}</pre>
             font-family: 'IBM Plex Mono', monospace;
             font-size: 12px;
             line-height: 1.7;
-            color: #aaa;
+            color: #666;
           }
 
           table {
@@ -261,31 +262,37 @@ npm install`}</pre>
             text-align: left;
             padding: 8px 12px;
             font-family: 'IBM Plex Mono', monospace;
-            font-size: 11px;
-            font-weight: 500;
-            color: #666;
+            font-size: 10px;
+            font-weight: 700;
+            color: #333;
             text-transform: uppercase;
-            letter-spacing: 0.06em;
-            border-bottom: 1px solid #222;
+            letter-spacing: 0.08em;
+            border-bottom: 1px solid #111;
           }
 
           td {
             padding: 10px 12px;
-            color: #bbb;
-            border-bottom: 1px solid #1a1a1a;
+            color: #777;
+            border-bottom: 1px solid #0a0a0a;
             vertical-align: top;
           }
 
-          td:first-child { font-family: 'IBM Plex Mono', monospace; font-size: 12px; color: #e0d9d0; }
+          td:first-child {
+            font-family: 'IBM Plex Mono', monospace;
+            font-size: 12px;
+            color: #ccc;
+          }
 
           .badge {
             font-family: 'IBM Plex Mono', monospace;
-            font-size: 10px;
-            font-weight: 500;
-            background: #1a2035;
-            color: #5a8a9f;
-            padding: 2px 8px;
-            letter-spacing: 0.06em;
+            font-size: 9px;
+            font-weight: 700;
+            background: rgba(210,249,9,0.1);
+            color: #D2F909;
+            padding: 3px 8px;
+            border-radius: 4px;
+            letter-spacing: 0.08em;
+            text-transform: uppercase;
           }
         `}</style>
       </div>
