@@ -145,8 +145,9 @@ npm install`}</pre>
             align-items: center;
             gap: 12px;
             text-decoration: none;
-            color: inherit;
+            color: #fff;
           }
+          .logo-link:visited { color: #fff; }
 
           .logo {
             height: 28px;
@@ -159,9 +160,9 @@ npm install`}</pre>
             letter-spacing: 0.04em;
           }
 
-          a, a:visited, a:link { color: inherit; text-decoration: none; }
-
-          a, a:visited, a:link { color: inherit; text-decoration: none; }
+          a { color: inherit; text-decoration: none; }
+          a:visited { color: inherit; text-decoration: none; }
+          a:link { color: inherit; text-decoration: none; }
 
           header h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
           .tagline { font-size: 11px; color: #444; font-family: 'IBM Plex Mono', monospace; }
@@ -173,6 +174,7 @@ npm install`}</pre>
             text-decoration: none;
             transition: color 0.2s;
           }
+          .back-btn:visited { color: #444; }
           .back-btn:hover { color: #D2F909; }
 
           main {
