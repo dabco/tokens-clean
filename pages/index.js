@@ -1,5 +1,6 @@
 import { useState, useRef, useEffect } from 'react';
 import Head from 'next/head';
+import Link from 'next/link';
 
 export default function Home() {
   const [status, setStatus]     = useState('idle');
@@ -183,6 +184,8 @@ export default function Home() {
           <h1>TokensClean</h1>
           <span className="subtitle">image · pdf → markdown → presse-papier</span>
 
+          <Link href="/docs" className="docs-link">Aide</Link>
+
           {/* Toggle OCR / Vision */}
           <div className="toggle-wrap">
             <div className={`toggle-track mode-${mode}`}>
@@ -348,6 +351,13 @@ export default function Home() {
           font-size: 11px; color: #444;
           font-family: 'IBM Plex Mono', monospace;
         }
+        .docs-link {
+          font-family: 'IBM Plex Mono', monospace;
+          font-size: 11px; color: #555;
+          text-decoration: none; margin-left: auto;
+          transition: color 0.2s;
+        }
+        .docs-link:hover { color: #e87c1a; }
 
         /* ── Toggle ── */
         .toggle-wrap {
