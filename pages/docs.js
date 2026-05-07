@@ -73,8 +73,8 @@ export default function Docs() {
 
             <h3>Installation</h3>
             <div className="code-block">
-              <pre>{`git clone https://github.com/dabco/docdrop-web.git
-cd docdrop-web/mcp
+              <pre>{`git clone https://github.com/dabco/tokens-clean.git
+cd tokens-clean/mcp
 npm install`}</pre>
             </div>
 
@@ -85,12 +85,12 @@ npm install`}</pre>
   "mcpServers": {
     "tokensclean": {
       "command": "node",
-      "args": ["/chemin/absolu/vers/docdrop-web/mcp/index.js"]
+      "args": ["/chemin/absolu/vers/tokens-clean/mcp/index.js"]
     }
   }
 }`}</pre>
             </div>
-            <p>Remplacez <code>/chemin/absolu/vers/docdrop-web</code> par le chemin réel sur votre machine, ex. <code>/Users/david/docdrop-web</code>.</p>
+            <p>Remplacez <code>/chemin/absolu/vers/tokens-clean</code> par le chemin réel sur votre machine, ex. <code>/Users/user/tokens-clean</code>.</p>
 
             <h3>Exemples d'utilisation</h3>
             <div className="code-block">
@@ -231,8 +231,8 @@ npm install`}</pre>
           code {
             font-family: 'IBM Plex Mono', monospace;
             font-size: 12px;
-            background: #0a0a0a;
-            border: 1px solid #1a1a1a;
+            background: #1a1a00;
+            border: 1px solid #3a3a00;
             padding: 2px 6px;
             color: #D2F909;
           }
