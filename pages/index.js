@@ -351,7 +351,7 @@ export default function Home() {
           font-size: 11px; color: #444;
           font-family: 'IBM Plex Mono', monospace;
         }
-        .docs-link {
+        .docs-link, .docs-link:visited, .docs-link:link {
           font-family: 'IBM Plex Mono', monospace;
           font-size: 11px; color: #555;
           text-decoration: none; margin-left: auto;

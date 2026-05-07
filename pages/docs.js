@@ -159,6 +159,8 @@ npm install`}</pre>
             letter-spacing: 0.04em;
           }
 
+          a, a:visited, a:link { color: inherit; text-decoration: none; }
+
           header h1 { font-size: 15px; font-weight: 700; letter-spacing: -0.02em; }
           .tagline { font-size: 11px; color: #444; font-family: 'IBM Plex Mono', monospace; }
 
