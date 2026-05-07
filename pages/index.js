@@ -351,12 +351,13 @@ export default function Home() {
           font-size: 11px; color: #444;
           font-family: 'IBM Plex Mono', monospace;
         }
-        .docs-link, .docs-link:visited, .docs-link:link {
+        .docs-link {
           font-family: 'IBM Plex Mono', monospace;
           font-size: 11px; color: #555;
           text-decoration: none; margin-left: auto;
           transition: color 0.2s;
         }
+        .docs-link:visited { color: #555; }
         .docs-link:hover { color: #D2F909; }
 
         /* ── Toggle ── */
