@@ -308,6 +308,8 @@ export default function Home() {
       </div>
 
       <style jsx global>{`
+        a:visited { color: inherit; }
+        .docs-link:visited { color: #555; }
         *, *::before, *::after { box-sizing: border-box; margin: 0; padding: 0; }
         html, body { height: 100%; overflow: hidden; }
         body {
