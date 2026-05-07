@@ -301,6 +301,11 @@ npm install`}</pre>
             text-transform: uppercase;
           }
         `}</style>
+        <style jsx global>{`
+          a:visited { color: inherit; }
+          .logo-link:visited { color: #fff; }
+          .back-btn:visited { color: #444; }
+        `}</style>
       </div>
     </>
   );
