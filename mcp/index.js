@@ -5,7 +5,7 @@ import { CallToolRequestSchema, ListToolsRequestSchema } from '@modelcontextprot
 import fs from 'fs';
 import path from 'path';
 
-const DOCDROP_API = 'https://docdrop-web.vercel.app/api/convert';
+const TOKENSCLEAN_API = 'https://docdrop-web.vercel.app/api/convert';
 
 const MIME_TYPES = {
   '.png':  'image/png',
@@ -19,7 +19,7 @@ const MIME_TYPES = {
 };
 
 const server = new Server(
-  { name: 'docdrop', version: '1.0.0' },
+  { name: 'tokensclean', version: '1.0.0' },
   { capabilities: { tools: {} } }
 );
 
@@ -27,7 +27,7 @@ server.setRequestHandler(ListToolsRequestSchema, async () => ({
   tools: [{
     name: 'convert_to_markdown',
     description:
-      'Convertit un fichier local (image, PDF, DOCX, PPTX) en Markdown via DocDrop. ' +
+      'Convertit un fichier local (image, PDF, DOCX, PPTX) en Markdown via TokensClean. ' +
       'Utilise cet outil avant de lire un document pour économiser des tokens : ' +
       'au lieu de traiter le fichier brut, récupère directement le Markdown extrait.',
     inputSchema: {
@@ -74,7 +74,7 @@ server.setRequestHandler(CallToolRequestSchema, async (request) => {
 
   const base64 = fs.readFileSync(absPath).toString('base64');
 
-  const response = await fetch(DOCDROP_API, {
+  const response = await fetch(TOKENSCLEAN_API, {
     method: 'POST',
     headers: { 'Content-Type': 'application/json' },
     body: JSON.stringify({ base64, mimeType, mode }),

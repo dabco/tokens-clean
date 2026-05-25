@@ -1,10 +1,10 @@
 {
-  "name": "docdrop-mcp",
+  "name": "tokens-clean-mcp",
   "version": "1.0.0",
-  "description": "MCP server — convertit images/PDF/DOCX/PPTX en Markdown via DocDrop",
+  "description": "MCP server — convertit images/PDF/DOCX/PPTX en Markdown via TokensClean",
   "type": "module",
   "bin": {
-    "docdrop-mcp": "./index.js"
+    "tokens-clean-mcp": "./index.js"
   },
   "dependencies": {
     "@modelcontextprotocol/sdk": "^1.12.0"
